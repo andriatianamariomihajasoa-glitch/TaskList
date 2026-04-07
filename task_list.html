@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>TaskFlow · Liste de tâches</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(145deg, #e9eef3 0%, #dce2ea 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem;
+    }
+
+    /* Carte principale */
+    .task-card {
+      max-width: 720px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(0px);
+      border-radius: 2rem;
+      box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      transition: all 0.2s ease;
+    }
+
+    /* en-tête */
+    .header {
+      background: white;
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .header h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1e2b3c, #2c4c6c);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header h1::before {
+      content: "✓✓";
+      font-size: 1.8rem;
+      background: none;
+      color: #2c7da0;
+      background-clip: unset;
+      -webkit-background-clip: unset;
+    }
+
+    /* zone d'ajout */
+    .add-task {
+      padding: 1.2rem 2rem 0.8rem 2rem;
+      background: white;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 0.75rem;
+      background: #f8fafd;
+      border-radius: 60px;
+      padding: 0.2rem 0.2rem 0.2rem 1.2rem;
+      border: 1px solid #e2edf2;
+      transition: all 0.2s;
+    }
+
+    .input-group:focus-within {
+      border-color: #2c7da0;
+      box-shadow: 0 0 0 3px rgba(44,125,160,0.2);
+      background: white;
+    }
+
+    #newTaskInput {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 0.9rem 0;
+      font-size: 1rem;
+      outline: none;
+      color: #1e2f3a;
+    }
+
+    #newTaskInput::placeholder {
+      color: #9aaeb9;
+      font-weight: 400;
+    }
+
+    .btn-add {
+      background: #2c7da0;
+      border: none;
+      color: white;
+      font-weight: 600;
+      padding: 0.6rem 1.5rem;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.15s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .btn-add:hover {
+      background: #1f5e7a;
+      transform: scale(0.97);
+    }
+
+    /* filtres */
+    .filters {
+      padding: 0.8rem 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      background: #ffffff;
+      border-bottom: 1px solid #ecf3f7;
+    }
+
+    .filter-btn {
+      background: transparent;
+      border: none;
+      padding: 0.5rem 1.1rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-radius: 40px;
+      cursor: pointer;
+      color: #4a6a7c;
+      transition: all 0.15s;
+    }
+
+    .filter-btn.active {
+      background: #e5f0f5;
+      color: #1f5e7a;
+      font-weight: 600;
+      box-shadow: inset 0 0 0 1px #cde3ec;
+    }
+
+    .filter-btn:hover:not(.active) {
+      background: #eef3f8;
+      color: #2c5a70;
+    }
+
+    /* liste des tâches */
+    .tasks-container {
+      background: #ffffff;
+      padding: 0.2rem 0 0.8rem 0;
+      max-height: 460px;
+      overflow-y: auto;
+    }
+
+    .task-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .task-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      padding: 0.9rem 2rem;
+      border-bottom: 1px solid #f0f4f8;
+      transition: background 0.1s;
+    }
+
+    .task-item:hover {
+      background: #fbfeff;
+    }
+
+    .task-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .task-check {
+      width: 1.3rem;
+      height: 1.3rem;
+      accent-color: #2c7da0;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .task-text {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #1f2f38;
+      word-break: break-word;
+      transition: 0.1s;
+      flex: 1;
+    }
+
+    .task-text.completed {
+      text-decoration: line-through;
+      color: #92a9b5;
+    }
+
+    /* actions boutons */
+    .task-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.3rem 0.4rem;
+      border-radius: 40px;
+      transition: all 0.1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+    }
+
+    .icon-btn.edit-btn {
+      color: #5f8b9c;
+    }
+    .icon-btn.edit-btn:hover {
+      background: #e9f0f4;
+      color: #2c7da0;
+    }
+    .icon-btn.delete-btn {
+      color: #c16f6f;
+    }
+    .icon-btn.delete-btn:hover {
+      background: #ffe6e6;
+      color: #bc4e4e;
+    }
+
+    /* mode édition */
+    .edit-mode-container {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+    .edit-input {
+      flex: 1;
+      padding: 0.6rem 0.9rem;
+      border-radius: 60px;
+      border: 1px solid #cde0e8;
+      font-size: 0.95rem;
+      outline: none;
+      background: white;
+    }
+    .edit-input:focus {
+      border-color: #2c7da0;
+      box-shadow: 0 0 0 2px rgba(44,125,160,0.2);
+    }
+    .save-cancel {
+      display: flex;
+      gap: 0.4rem;
+    }
+    .save-btn, .cancel-btn {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.3rem 0.6rem;
+      border-radius: 30px;
+      transition: 0.1s;
+    }
+    .save-btn {
+      color: #2c7da0;
+    }
+    .save-btn:hover {
+      background: #e0f0f5;
+    }
+    .cancel-btn {
+      color: #b97f7f;
+    }
+    .cancel-btn:hover {
+      background: #ffe8e8;
+    }
+
+    /* pied de page */
+    .footer-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      background: #fafdff;
+      border-top: 1px solid #eaf1f5;
+      font-size: 0.85rem;
+      color: #547383;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+    .remaining-count {
+      font-weight: 500;
+      background: #eef3f8;
+      padding: 0.2rem 0.8rem;
+      border-radius: 30px;
+    }
+    .clear-completed {
+      background: none;
+      border: 1px solid #dce6ec;
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #6f8d9c;
+      cursor: pointer;
+      transition: 0.1s;
+    }
+    .clear-completed:hover {
+      background: #ffecec;
+      border-color: #e0b4b4;
+      color: #bc6f6f;
+    }
+
+    .empty-message {
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+      color: #97afbb;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+
+    /* scroll élégante */
+    .tasks-container::-webkit-scrollbar {
+      width: 5px;
+    }
+    .tasks-container::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .tasks-container::-webkit-scrollbar-thumb {
+      background: #cbdae2;
+      border-radius: 8px;
+    }
+
+    @media (max-width: 550px) {
+      .task-item {
+        flex-wrap: wrap;
+        padding: 0.8rem 1.2rem;
+      }
+      .task-left {
+        width: 100%;
+      }
+      .task-actions {
+        margin-left: auto;
+      }
+      .filters, .add-task, .header {
+        padding-left: 1.2rem;
+        padding-right: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="task-card">
+  <div class="header">
+    <h1>Liste de tâches</h1>
+  </div>
+
+  <div class="add-task">
+    <div class="input-group">
+      <input type="text" id="newTaskInput" placeholder="Écrire une nouvelle tâche..." autocomplete="off">
+      <button class="btn-add" id="addTaskBtn">Ajouter</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">Toutes</button>
+    <button class="filter-btn" data-filter="active">Actives</button>
+    <button class="filter-btn" data-filter="completed">Terminées</button>
+  </div>
+
+  <div class="tasks-container">
+    <ul class="task-list" id="taskList"></ul>
+  </div>
+
+  <div class="footer-stats">
+    <span class="remaining-count" id="tasksRemaining">0 restante(s)</span>
+    <button class="clear-completed" id="clearCompletedBtn">Supprimer terminées</button>
+  </div>
+</div>
+
+<script>
+  // ---------- STOCKAGE & ÉTAT ----------
+  let tasks = [];           // { id, text, completed }
+  let currentFilter = 'all';  // 'all', 'active', 'completed'
+  let editingId = null;       // id de la tâche en cours d'édition
+
+  // Éléments DOM
+  const taskListEl = document.getElementById('taskList');
+  const newTaskInput = document.getElementById('newTaskInput');
+  const addBtn = document.getElementById('addTaskBtn');
+  const remainingSpan = document.getElementById('tasksRemaining');
+  const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+  const filterBtns = document.querySelectorAll('.filter-btn');
+
+  // ---------- SAUVEGARDE LOCALSTORAGE ----------
+  const STORAGE_KEY = 'taskflow_app';
+  function saveToLocalStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  function loadTasksFromStorage() {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        tasks = JSON.parse(stored);
+        // s'assurer que chaque tâche a bien un id (anciennes données)
+        if (!tasks.every(t => typeof t.id === 'number')) {
+          tasks = tasks.map((t, idx) => ({ ...t, id: t.id || Date.now() + idx }));
+        }
+      } catch(e) { tasks = []; }
+    }
+    if (!tasks || tasks.length === 0) {
+      // Tâches de démonstration (pour un premier aperçu)
+      tasks = [
+        { id: 1710001001, text: "✨ Faire les courses", completed: false },
+        { id: 1710001002, text: "📞 Appeler le médecin", completed: false },
+        { id: 1710001003, text: "📚 Apprendre JavaScript", completed: true },
+        { id: 1710001004, text: "🧘 Méditation 10 min", completed: false }
+      ];
+    }
+  }
+
+  // ---------- FONCTIONS UTILITAIRES ----------
+  function updateRemainingCount() {
+    const remaining = tasks.filter(t => !t.completed).length;
+    remainingSpan.textContent = `${remaining} ${remaining === 1 ? 'tâche restante' : 'tâches restantes'}`;
+  }
+
+  // Annuler le mode édition (si actif)
+  function cancelEditing() {
+    editingId = null;
+  }
+
+  // Appliquer le filtre + mettre à jour l'affichage
+  function getFilteredTasks() {
+    if (currentFilter === 'active') return tasks.filter(t => !t.completed);
+    if (currentFilter === 'completed') return tasks.filter(t => t.completed);
+    return tasks; // all
+  }
+
+  // Rendu complet de l'interface (basé sur le filtre + mode édition)
+  function render() {
+    const filtered = getFilteredTasks();
+    const taskListFragment = document.createDocumentFragment();
+
+    if (filtered.length === 0) {
+      const emptyLi = document.createElement('li');
+      emptyLi.className = 'empty-message';
+      emptyLi.textContent = currentFilter === 'all' ? 'Aucune tâche. Ajoutez-en une ! ✨' :
+                            (currentFilter === 'active' ? '✔️ Aucune tâche active en cours' : '✅ Aucune tâche terminée');
+      taskListFragment.appendChild(emptyLi);
+    } else {
+      filtered.forEach(task => {
+        const li = document.createElement('li');
+        li.className = 'task-item';
+        li.dataset.taskId = task.id;
+
+        // Partie gauche (checkbox + texte) ou mode édition
+        const leftDiv = document.createElement('div');
+        leftDiv.className = 'task-left';
+
+        // Vérifier si cette tâche est en cours d'édition
+        if (editingId === task.id) {
+          // Mode édition : input + boutons sauvegarder/annuler
+          const editWrapper = document.createElement('div');
+          editWrapper.className = 'edit-mode-container';
+
+          const editInput = document.createElement('input');
+          editInput.type = 'text';
+          editInput.value = task.text;
+          editInput.className = 'edit-input';
+          editInput.placeholder = 'Modifier la tâche...';
+          editInput.setAttribute('data-edit-id', task.id);
+
+          const btnGroup = document.createElement('div');
+          btnGroup.className = 'save-cancel';
+
+          const saveBtn = document.createElement('button');
+          saveBtn.innerHTML = '✓';
+          saveBtn.className = 'save-btn';
+          saveBtn.title = 'Sauvegarder';
+          saveBtn.setAttribute('data-save-id', task.id);
+
+          const cancelBtn = document.createElement('button');
+          cancelBtn.innerHTML = '✗';
+          cancelBtn.className = 'cancel-btn';
+          cancelBtn.title = 'Annuler';
+          cancelBtn.setAttribute('data-cancel-id', task.id);
+
+          btnGroup.appendChild(saveBtn);
+          btnGroup.appendChild(cancelBtn);
+          editWrapper.appendChild(editInput);
+          editWrapper.appendChild(btnGroup);
+          leftDiv.appendChild(editWrapper);
+        } else {
+          // Mode normal : checkbox + texte
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.checked = task.completed;
+          checkbox.className = 'task-check';
+          checkbox.setAttribute('data-id', task.id);
+
+          const textSpan = document.createElement('span');
+          textSpan.className = `task-text ${task.completed ? 'completed' : ''}`;
+          textSpan.textContent = task.text;
+
+          leftDiv.appendChild(checkbox);
+          leftDiv.appendChild(textSpan);
+        }
+
+        // Zone des boutons d'action (edit / delete) seulement si pas en édition
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'task-actions';
+
+        if (editingId !== task.id) {
+          // Bouton Éditer
+          const editBtn = document.createElement('button');
+          editBtn.innerHTML = '✏️';
+          editBtn.className = 'icon-btn edit-btn';
+          editBtn.title = 'Modifier';
+          editBtn.setAttribute('data-edit-task', task.id);
+          // Bouton Supprimer
+          const delBtn = document.createElement('button');
+          delBtn.innerHTML = '🗑️';
+          delBtn.className = 'icon-btn delete-btn';
+          delBtn.title = 'Supprimer';
+          delBtn.setAttribute('data-del-id', task.id);
+
+          actionsDiv.appendChild(editBtn);
+          actionsDiv.appendChild(delBtn);
+        }
+
+        li.appendChild(leftDiv);
+        li.appendChild(actionsDiv);
+        taskListFragment.appendChild(li);
+      });
+    }
+
+    // Vider et insérer la nouvelle liste
+    taskListEl.innerHTML = '';
+    taskListEl.appendChild(taskListFragment);
+
+    // Mise à jour compteur + sauvegarde (mais pas d'appel en boucle)
+    updateRemainingCount();
+    saveToLocalStorage();
+  }
+
+  // Fonction de réinitialisation du mode édition + re-render
+  function refreshUI(resetEditing = true) {
+    if (resetEditing) cancelEditing();
+    render();
+  }
+
+  // Ajouter une tâche
+  function addTask() {
+    const rawText = newTaskInput.value.trim();
+    if (rawText === "") {
+      // petit feedback visuel mais pas agressif
+      newTaskInput.style.border = "1px solid #ffc2c2";
+      setTimeout(() => { newTaskInput.style.border = ""; }, 500);
+      return;
+    }
+    const newTask = {
+      id: Date.now(),
+      text: rawText,
+      completed: false,
+    };
+    tasks.push(newTask);
+    newTaskInput.value = "";
+    // Annuler toute édition en cours avant refresh
+    cancelEditing();
+    render();
+  }
+
+  // Basculer l'état d'une tâche
+  function toggleTask(taskId) {
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      task.completed = !task.completed;
+      // Si on est en train d'éditer cette tâche, on quitte le mode édition
+      if (editingId === taskId) cancelEditing();
+      render();
+    }
+  }
+
+  // Supprimer une tâche
+  function deleteTask(taskId) {
+    tasks = tasks.filter(t => t.id !== taskId);
+    if (editingId === taskId) cancelEditing();
+    render();
+  }
+
+  // Démarrer l'édition d'une tâche
+  function startEditTask(taskId) {
+    const taskExists = tasks.some(t => t.id === taskId);
+    if (!taskExists) return;
+    editingId = taskId;
+    render();  // re-render avec mode édition pour cette tâche
+  }
+
+  // Sauvegarder l'édition (récupère la valeur du champ input actif)
+  function saveEdit(taskId) {
+    // Trouver l'input correspondant dans le DOM (car re-render frais)
+    const editInput = document.querySelector(`.edit-input[data-edit-id="${taskId}"]`);
+    if (!editInput) return;
+    const newText = editInput.value.trim();
+    if (newText === "") {
+      // annuler silencieusement si texte vide
+      cancelEditing();
+      render();
+      return;
+    }
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      task.text = newText;
+    }
+    cancelEditing();  // quitter mode édition
+    render();
+  }
+
+  // Annuler l'édition sans sauvegarde
+  function cancelEdit(taskId) {
+    cancelEditing();
+    render();
+  }
+
+  // Supprimer toutes les tâches terminées
+  function clearCompletedTasks() {
+    const hasCompleted = tasks.some(t => t.completed);
+    if (!hasCompleted) return;
+    tasks = tasks.filter(t => !t.completed);
+    if (editingId !== null) cancelEditing();
+    render();
+  }
+
+  // Changer le filtre actif
+  function setFilter(filterType) {
+    currentFilter = filterType;
+    // Mettre à jour l'aspect des boutons
+    filterBtns.forEach(btn => {
+      const btnFilter = btn.getAttribute('data-filter');
+      if (btnFilter === filterType) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    // Quand on change de filtre, on désactive le mode édition
+    cancelEditing();
+    render();
+  }
+
+  // ---------- GESTION DES ÉVÈNEMENTS (DÉLÉGATION) ----------
+  function handleGlobalClick(e) {
+    const target = e.target;
+
+    // Checkbox toggle
+    if (target.classList.contains('task-check') && target.hasAttribute('data-id')) {
+      const id = parseInt(target.getAttribute('data-id'));
+      toggleTask(id);
+      return;
+    }
+
+    // Bouton supprimer
+    if (target.classList.contains('delete-btn') && target.hasAttribute('data-del-id')) {
+      const id = parseInt(target.getAttribute('data-del-id'));
+      deleteTask(id);
+      return;
+    }
+
+    // Bouton éditer (déclenche mode édition)
+    if (target.classList.contains('edit-btn') && target.hasAttribute('data-edit-task')) {
+      const id = parseInt(target.getAttribute('data-edit-task'));
+      startEditTask(id);
+      return;
+    }
+
+    // Sauvegarde depuis mode édition (bouton ✓)
+    if (target.classList.contains('save-btn') && target.hasAttribute('data-save-id')) {
+      const id = parseInt(target.getAttribute('data-save-id'));
+      saveEdit(id);
+      return;
+    }
+
+    // Annulation depuis mode édition (bouton ✗)
+    if (target.classList.contains('cancel-btn') && target.hasAttribute('data-cancel-id')) {
+      const id = parseInt(target.getAttribute('data-cancel-id'));
+      cancelEdit(id);
+      return;
+    }
+  }
+
+  // Gestion du clavier pour les inputs en mode édition (Enter / Escape)
+  function handleDocumentKeydown(e) {
+    if (editingId === null) return;
+
+    // Vérifier si l'élément actif est un champ d'édition
+    const activeInput = document.activeElement;
+    if (activeInput && activeInput.classList && activeInput.classList.contains('edit-input')) {
+      const taskIdAttr = activeInput.getAttribute('data-edit-id');
+      if (taskIdAttr) {
+        const taskId = parseInt(taskIdAttr);
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveEdit(taskId);
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelEdit(taskId);
+        }
+      }
+    }
+  }
+
+  // Ajout d'une tâche via le champ + bouton / touche Entrée
+  function handleAddTaskKeyboard(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTask();
+    }
+  }
+
+  // Initialisation des écouteurs globaux
+  function bindEvents() {
+    addBtn.addEventListener('click', addTask);
+    newTaskInput.addEventListener('keypress', handleAddTaskKeyboard);
+    clearCompletedBtn.addEventListener('click', clearCompletedTasks);
+
+    // Filtres
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const filterValue = btn.getAttribute('data-filter');
+        setFilter(filterValue);
+      });
+    });
+
+    // Délégation pour les actions dynamiques (checkbox, delete, edit, sauvegarde)
+    document.addEventListener('click', handleGlobalClick);
+    document.addEventListener('keydown', handleDocumentKeydown);
+  }
+
+  // ---------- INITIALISATION ----------
+  function init() {
+    loadTasksFromStorage();
+    bindEvents();
+    // Filtrer 'all' par défaut
+    currentFilter = 'all';
+    document.querySelector('.filter-btn[data-filter="all"]').classList.add('active');
+    cancelEditing();
+    render();
+  }
+
+  init();
+</script>
+</body>
+</html>
