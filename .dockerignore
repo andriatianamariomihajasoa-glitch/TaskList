@@ -1,0 +1,36 @@
+# Fichiers de documentation
+README.md
+*.md
+
+# Fichiers d’édition ou temporaires
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Dépôts git
+.git
+.gitignore
+
+# Docker (évite de copier d’anciennes images ou fichiers inutiles)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Fichiers de développement ou logs
+*.log
+*.tmp
+*.bak
+
+# Dossiers système
+__pycache__/
+*.pyc
+.venv/
+env/
+
+# Éditeurs
+.vscode/
+.idea/
+*.sublime-*
+
